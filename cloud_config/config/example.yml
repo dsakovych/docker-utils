@@ -1,0 +1,35 @@
+amazon:
+  accessKey: AKIA3PPHAYG54G
+  secretKey: DY78nA4UpYhhIMxe6AHzZpyoX
+  regionName: eu-west-1
+  s3:
+    private:
+      bucketName: some-bucket
+
+
+logging:
+  level: INFO
+        
+db:
+  replica:
+    host: 127.0.0.1
+    port: 3306
+    user: test_user
+    password: test_password
+    database: test_db
+
+sendgrid:
+  sender:
+    email: mail@dmytro.io
+  api:
+    key: SG.A4cTGEZuIDy-0
+  recipient:
+    emails: 
+
+kafka:
+  default_topic: test_topic
+  group_id: None
+
+logstash:
+  host: 127.0.0.1
+  port: 5400

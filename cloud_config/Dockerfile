@@ -1,0 +1,1 @@
+FROM hyness/spring-cloud-config-server:latest
