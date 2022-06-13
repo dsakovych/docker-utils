@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  redis:
+    build:
+      context: .
+    restart: unless-stopped
+    container_name: "redis"
+    ports:
+      - '6379:6379'
+    environment:
+     - REDIS_REPLICATION_MODE=master

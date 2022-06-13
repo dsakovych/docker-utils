@@ -1,0 +1,61 @@
+version: '3'
+
+services:
+
+  elasticsearch:
+    container_name: elasticsearch
+    hostname: "elasticsearch"
+    restart: unless-stopped
+    build:
+      context: elasticsearch/
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      TZ: "Europe/Kiev"
+    networks:
+      - elk_lan
+
+  logstash:
+    container_name: logstash
+    hostname: "logstash"
+    restart: unless-stopped
+    build:
+      context: logstash/
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5400:5400"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      TZ: "Europe/Kiev"
+    networks:
+      - elk_lan
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    container_name: kibana
+    hostname: "kibana"
+    restart: unless-stopped
+    build:
+      context: kibana/
+    volumes:
+      - ./kibana/config/:/usr/share/kibana/config:ro
+    ports:
+      - "5601:5601"
+    environment:
+      TZ: "Europe/Kiev"
+    networks:
+      - elk_lan
+    depends_on:
+      - elasticsearch
+
+networks:
+
+  elk_lan:
+    driver: bridge

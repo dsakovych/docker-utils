@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  mysql:
+    container_name: "mysql-db"
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"
+    env_file:
+      - .env
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+#  adminer:
+#    container_name: "db-adminer"
+#    image: adminer
+#    restart: always
+#    ports:
+#      - 8080:8080
+
+volumes:
+  mysql-data:
+    name: "mysql-data-volume"
+    external: true
+
+# NOTE: run before docker-compose
+# mkdir /var/lib/mysql
+# docker volume create --driver local --opt type=none --opt device=/var/lib/mysql --opt o=bind --name=mysql-data-volume

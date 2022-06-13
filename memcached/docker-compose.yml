@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  memcached:
+    container_name: "memcached"
+    restart: unless-stopped
+    build:
+      context: .
+    ports:
+      - "11211:11211"

@@ -1,0 +1,31 @@
+version: "3"
+services:
+
+  zookeeper:
+    build:
+      context: zookeeper/
+    container_name: "zookeeper"
+    ports:
+      - '2181:2181'
+    env_file:
+      - zookeeper/.env
+    networks:
+      - kafka_lan
+
+  kafka:
+    build:
+      context: kafka/
+    container_name: "kafka"
+    ports:
+      - '9092:9092'
+    env_file:
+      - kafka/.env
+    depends_on:
+      - zookeeper
+    networks:
+      - kafka_lan
+
+networks:
+
+  kafka_lan:
+    driver: bridge
