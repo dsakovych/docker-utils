@@ -9,7 +9,7 @@ services:
     volumes:
       - ./config:/config
     ports:
-      - "8080:8888"
+      - "8889:8888"
     environment:
       - SPRING_PROFILES_ACTIVE=native
       - SPRING_PROFILES_INCLUDE=native
