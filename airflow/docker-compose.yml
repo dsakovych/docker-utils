@@ -1,21 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
-
 # Basic Airflow cluster configuration for CeleryExecutor with Redis and PostgreSQL.
 #
 # WARNING: This configuration is for local development. Do not use it in a production deployment.
@@ -44,8 +26,10 @@ x-airflow-common:
   # In order to add custom dependencies or upgrade provider packages you can use your extended image.
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:|version|}
-  # build: .
+#  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:|version|}
+  build: .
+  extra_hosts:
+      - "host.docker.internal:host-gateway"
   environment:
     &airflow-common-env
     #
@@ -81,6 +65,7 @@ x-airflow-common:
 services:
   postgres:
     image: postgres:13
+    container_name: airflow-postgres
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -91,10 +76,11 @@ services:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s
       retries: 5
-    restart: always
+    restart: unless-stopped
 
   redis:
     image: redis:latest
+    container_name: airflow-redis
     expose:
       - 6379
     healthcheck:
@@ -102,10 +88,11 @@ services:
       interval: 5s
       timeout: 30s
       retries: 50
-    restart: always
+    restart: unless-stopped
 
   airflow-webserver:
     <<: *airflow-common
+    container_name: airflow-webserver
     command: webserver
     ports:
       - 8080:8080
@@ -114,7 +101,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-    restart: always
+    restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -122,13 +109,14 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
+    container_name: airflow-scheduler
     command: scheduler
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
       interval: 10s
       timeout: 10s
       retries: 5
-    restart: always
+    restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -136,6 +124,7 @@ services:
 
   airflow-worker:
     <<: *airflow-common
+    container_name: airflow-worker
     command: celery worker
     healthcheck:
       test:
@@ -149,7 +138,7 @@ services:
       # Required to handle warm shutdown of the celery workers properly
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
-    restart: always
+    restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -157,13 +146,14 @@ services:
 
   airflow-triggerer:
     <<: *airflow-common
+    container_name: airflow-triggerer
     command: triggerer
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
       interval: 10s
       timeout: 10s
       retries: 5
-    restart: always
+    restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -171,6 +161,7 @@ services:
 
   airflow-init:
     <<: *airflow-common
+    container_name: airflow-init
     entrypoint: /bin/bash
     # yamllint disable rule:line-length
     command:
@@ -249,6 +240,7 @@ services:
 
   airflow-cli:
     <<: *airflow-common
+    container_name: airflow-cli
     profiles:
       - debug
     environment:
@@ -265,6 +257,7 @@ services:
   # See: https://docs.docker.com/compose/profiles/
   flower:
     <<: *airflow-common
+    container_name: airflow-cli
     command: celery flower
     profiles:
       - flower
@@ -275,7 +268,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-    restart: always
+    restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:

@@ -1,3 +1,7 @@
 .idea
 
 cloud_config/config/*.yml
+
+airflow/dags
+
+*.log
