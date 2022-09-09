@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  db:
+    container_name: "postgres"
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+volumes:
+  postgres-data:
+    name: "postgres-data-volume"
+    external: true
+
+
+# NOTE: run before docker-compose
+# mkdir /var/lib/postgresql
+# docker volume create --driver local --opt type=none --opt device=/var/lib/postgresql --opt o=bind --name=postgres-data-volume
