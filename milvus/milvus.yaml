@@ -70,25 +70,37 @@ localStorage:
 # Related configuration of MinIO/S3/GCS or any other service supports S3 API, which is responsible for data persistence for Milvus.
 # We refer to the storage service as MinIO/S3 in the following description for simplicity.
 minio:
-  address: localhost # Address of MinIO/S3
-  port: 9000   # Port of MinIO/S3
-  accessKeyID: minioadmin # accessKeyID of MinIO/S3
-  secretAccessKey: minioadmin # MinIO/S3 encryption string
-  useSSL: false # Access to MinIO/S3 with SSL
-  bucketName: "a-bucket" # Bucket name in MinIO/S3
-  rootPath: files # The root path where the message is stored in MinIO/S3
-   # Whether to use IAM role to access S3/GCS instead of access/secret keys
-  # For more infomation, refer to
-  # aws: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html
-  # gcp: https://cloud.google.com/storage/docs/access-control/iam
+#  address: s3.eu-central-1.amazonaws.com # Address of MinIO/S3
+#  port: 80   # Port of MinIO/S3
+#  accessKeyID: minioadmin # accessKeyID of MinIO/S3
+#  secretAccessKey: minioadmin # MinIO/S3 encryption string
+#  useSSL: false # Access to MinIO/S3 with SSL
+#  bucketName: "a-bucket" # Bucket name in MinIO/S3
+#  rootPath: files # The root path where the message is stored in MinIO/S3
+#   # Whether to use IAM role to access S3/GCS instead of access/secret keys
+#  # For more infomation, refer to
+#  # aws: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html
+#  # gcp: https://cloud.google.com/storage/docs/access-control/iam
+#  useIAM: false
+#  # Cloud Provider of S3. Supports: "aws", "gcp".
+#  # You can use "aws" for other cloud provider supports S3 API with signature v4, e.g.: minio
+#  # You can use "gcp" for other cloud provider supports S3 API with signature v2
+#  # When `useIAM` enabled, only "aws" & "gcp" is supported for now
+#  cloudProvider: "aws"
+#  # Custom endpoint for fetch IAM role credentials. when useIAM is true & cloudProvider is "aws".
+#  # Leave it empty if you want to use AWS default endpoint
+#  iamEndpoint: ""
+
+
+  address: s3.eu-central-1.amazonaws.com
+  port: 80
+  accessKeyID: <AWS_ACCESS_KEY>
+  secretAccessKey: <AWS_SECRET_KEY>
+  useSSL: false
+  bucketName: "bucket-test"
+  rootPath: milvus
   useIAM: false
-  # Cloud Provider of S3. Supports: "aws", "gcp".
-  # You can use "aws" for other cloud provider supports S3 API with signature v4, e.g.: minio
-  # You can use "gcp" for other cloud provider supports S3 API with signature v2
-  # When `useIAM` enabled, only "aws" & "gcp" is supported for now
   cloudProvider: "aws"
-  # Custom endpoint for fetch IAM role credentials. when useIAM is true & cloudProvider is "aws".
-  # Leave it empty if you want to use AWS default endpoint
   iamEndpoint: ""
 
 # Milvus supports three MQ: rocksmq(based on RockDB), Pulsar and Kafka, which should be reserved in config what you use.
@@ -157,22 +169,18 @@ proxy:
     timeTick:
       bufSize: 512
   maxNameLength: 255  # Maximum length of name for a collection or alias
-  maxFieldNum: 64     # Maximum number of fields in a collection.
-  # As of today (2.2.0 and after) it is strongly DISCOURAGED to set maxFieldNum >= 64.
-  # So adjust at your risk!
+  maxFieldNum: 256     # Maximum number of fields in a collection
   maxDimension: 32768 # Maximum dimension of a vector
   maxShardNum: 256 # Maximum number of shards in a collection
   maxTaskNum: 1024 # max task number of proxy task queue
   # please adjust in embedded Milvus: false
   ginLogging: true # Whether to produce gin logs.
-  accessLog:
-    localPath: /tmp/milvus_accesslog
-    filename: milvus_access_log.log
   grpc:
     serverMaxRecvSize: 67108864 # 64M
     serverMaxSendSize: 67108864 # 64M
     clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
     clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
 
 
 # Related configuration of queryCoord, used to manage topology and load balancing for the query nodes, and handoff from growing segments to sealed segments.
@@ -188,12 +196,12 @@ queryCoord:
   channelTaskTimeout: 60000 # 1 minute
   segmentTaskTimeout: 120000 # 2 minute
   distPullInterval: 500
-  heartbeatAvailableInterval: 10000 # 10s, Only QueryNodes which fetched heartbeats within the duration are available
   loadTimeoutSeconds: 600
   checkHandoffInterval: 5000
   taskMergeCap: 16
   taskExecutionCap: 256
   enableActiveStandby: false  # Enable active-standby
+  refreshTargetsIntervalSeconds: 300
 
 # Related configuration of queryNode, used to run hybrid search between vector and scalar data.
 queryNode:
@@ -283,15 +291,10 @@ dataCoord:
     # `minSizeFromIdleToSealed`, Milvus will automatically seal it.
     maxIdleTime: 600 # The max idle time of segment in seconds, 10*60.
     minSizeFromIdleToSealed: 16 # The min size in MB of segment which can be idle from sealed.
-    # The max number of binlog file for one segment, the segment will be sealed if
-    # the number of binlog file reaches to max value.
-    maxBinlogFileNumber: 256
     smallProportion: 0.5 # The segment is considered as "small segment" when its # of rows is smaller than
     # (smallProportion * segment max # of rows).
-    compactableProportion: 0.5 # A compaction will happen on small segments if the segment after compaction will have
+    compactableProportion: 0.85 # A compaction will happen on small segments if the segment after compaction will have
     # over (compactableProportion * segment max # of rows) rows.
-    # MUST BE GREATER THAN OR EQUAL TO <smallProportion>!!!
-    expansionRate: 1.25 # During compaction, the size of segment # of rows is able to exceed segment max # of rows by (expansionRate-1) * 100%.
 
   compaction:
     enableAutoCompaction: true
@@ -386,7 +389,6 @@ common:
   entityExpiration: -1     # Entity expiration in seconds, CAUTION make sure entityExpiration >= retentionDuration and -1 means never expire
 
   gracefulTime: 5000 # milliseconds. it represents the interval (in ms) by which the request arrival time needs to be subtracted in the case of Bounded Consistency.
-  gracefulStopTimeout: 30 # seconds. it will force quit the server if the graceful stop process is not completed during this time.
 
   # Default value: auto
   # Valid values: [auto, avx512, avx2, avx, sse4_2]
@@ -409,10 +411,6 @@ common:
 
   security:
     authorizationEnabled: false
-    # The superusers will ignore some system check processes,
-    # like the old password verification when updating the credential
-    superUsers:
-      - "root"
     # tls mode values [0, 1, 2]
     # 0 is close, 1 is one-way authentication, 2 is two-way authentication.
     tlsMode: 0
